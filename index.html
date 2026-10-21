@@ -277,6 +277,7 @@ const MK = [
   {k:"EUR/USD", d:"Euro / Dólar",   src:"daily", fx:"USD",    td:"EUR/USD", dec:5},
   {k:"EUR/JPY", d:"Euro / Yen",     src:"daily", fx:"JPY",    td:"EUR/JPY", dec:3},
   {k:"GBP/USD", d:"Libra / Dólar",  src:"daily", fx:"GBPUSD", td:"GBP/USD", dec:5},
+  {k:"USD/JPY", d:"Dólar / Yen",    src:"daily", fx:"USDJPY", td:"USD/JPY", dec:3},
   {k:"XAU/USD", d:"Oro",            src:"sim",  p:4130, vol:1.4, td:"XAU/USD", dec:2},
   {k:"USOIL",   d:"Petróleo WTI",   src:"sim",  p:98.9, vol:0.06, dec:2},
   {k:"BTC/USD", d:"Bitcoin",        src:"live", bin:"BTCUSDT", dec:0},
@@ -284,7 +285,7 @@ const MK = [
   {k:"SOL/USD", d:"Solana",         src:"live", bin:"SOLUSDT", dec:2},
 ];
 let TD_KEY = ""; try { TD_KEY = localStorage.getItem("soralab-tdkey") || ""; } catch(e){}
-const TD_EVERY_MIN = 10;   // 4 mercados cada 10 min = 576 consultas/día (plan gratuito: 800)
+const TD_EVERY_MIN = 15;   // 5 mercados cada 15 min = 480 consultas/día (plan gratuito: 800), con margen para recargas
 const BY = Object.fromEntries(MK.map(m=>[m.k,m]));
 const START = 10000;
 const px = {}, ref = {}, LS = "soralab-v2";
@@ -315,9 +316,9 @@ async function pollFx(){
   try{
     const j = await (await fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,JPY,GBP")).json();
     const set = (k,v) => { if (BY[k].src==="daily") px[k] = v; if (!ref[k]) ref[k] = v; };
-    set("EUR/USD", j.rates.USD); set("EUR/JPY", j.rates.JPY); set("GBP/USD", j.rates.USD / j.rates.GBP);
+    set("EUR/USD", j.rates.USD); set("EUR/JPY", j.rates.JPY); set("GBP/USD", j.rates.USD / j.rates.GBP); set("USD/JPY", j.rates.JPY / j.rates.USD);
     const y = await (await fetch("https://api.frankfurter.dev/v1/" + prevDay(j.date) + "?base=EUR&symbols=USD,JPY,GBP")).json();
-    ref["EUR/USD"] = y.rates.USD; ref["EUR/JPY"] = y.rates.JPY; ref["GBP/USD"] = y.rates.USD / y.rates.GBP;
+    ref["EUR/USD"] = y.rates.USD; ref["EUR/JPY"] = y.rates.JPY; ref["GBP/USD"] = y.rates.USD / y.rates.GBP; ref["USD/JPY"] = y.rates.JPY / y.rates.USD;
     fxDate = j.date;
   }catch(e){ fxDate = null; }
   refresh();

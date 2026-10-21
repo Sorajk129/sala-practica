@@ -208,12 +208,15 @@ const MK = [
   {k:"BTC/USD", d:"Bitcoin",        tv:"BINANCE:BTCUSDT", src:"live", bin:"BTCUSDT", dec:0},
   {k:"ETH/USD", d:"Ethereum",       tv:"BINANCE:ETHUSDT", src:"live", bin:"ETHUSDT", dec:2},
   {k:"SOL/USD", d:"Solana",         tv:"BINANCE:SOLUSDT", src:"live", bin:"SOLUSDT", dec:2},
-  {k:"EUR/USD", d:"Euro / Dólar",   tv:"FX:EURUSD",       src:"daily", fx:"USD",     dec:5},
-  {k:"EUR/JPY", d:"Euro / Yen",     tv:"FX:EURJPY",       src:"daily", fx:"JPY",     dec:3},
-  {k:"GBP/USD", d:"Libra / Dólar",  tv:"FX:GBPUSD",       src:"daily", fx:"GBPUSD",  dec:5},
-  {k:"USOIL",   d:"Petróleo WTI",   tv:"TVC:USOIL",       src:"sim",  p:71.2, vol:0.04, dec:2},
-  {k:"XAU/USD", d:"Oro",            tv:"OANDA:XAUUSD",    src:"sim",  p:2650, vol:0.9,  dec:2},
+  {k:"EUR/USD", d:"Euro / Dólar",   tv:"FX:EURUSD",       src:"daily", fx:"USD",     td:"EUR/USD", dec:5},
+  {k:"EUR/JPY", d:"Euro / Yen",     tv:"FX:EURJPY",       src:"daily", fx:"JPY",     td:"EUR/JPY", dec:3},
+  {k:"GBP/USD", d:"Libra / Dólar",  tv:"FX:GBPUSD",       src:"daily", fx:"GBPUSD",  td:"GBP/USD", dec:5},
+  {k:"USOIL",   d:"Petróleo WTI",   tv:"TVC:USOIL",       src:"sim",  p:98.9, vol:0.06, td:"WTI/USD", dec:2},
+  {k:"XAU/USD", d:"Oro",            tv:"OANDA:XAUUSD",    src:"sim",  p:4130, vol:1.4,  td:"XAU/USD", dec:2},
 ];
+// Clave de Twelve Data (plan gratuito: 800 consultas/día). Con ella, divisas, oro y petróleo van en tiempo real.
+const TD_KEY = "PON_AQUI_TU_CLAVE";
+const TD_EVERY_MIN = 10;   // 5 mercados cada 10 min = 720 consultas/día
 const BY = Object.fromEntries(MK.map(m=>[m.k,m]));
 const px = {}, ref = {}, LS = "sala-practica-v2";
 let S = {bal:10000, pos:[], hist:[], reps:null, nextId:1};
@@ -240,10 +243,10 @@ async function pollBinance(){
 }
 async function pollFx(){
   try{
-    const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=USD,JPY,GBP");
+    const r = await fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,JPY,GBP");
     const j = await r.json();
     px["EUR/USD"] = j.rates.USD; px["EUR/JPY"] = j.rates.JPY; px["GBP/USD"] = j.rates.USD / j.rates.GBP;
-    const y = await (await fetch("https://api.frankfurter.app/" + prevDay(j.date) + "?from=EUR&to=USD,JPY,GBP")).json();
+    const y = await (await fetch("https://api.frankfurter.dev/v1/" + prevDay(j.date) + "?base=EUR&symbols=USD,JPY,GBP")).json();
     ref["EUR/USD"] = y.rates.USD; ref["EUR/JPY"] = y.rates.JPY; ref["GBP/USD"] = y.rates.USD / y.rates.GBP;
     fxDate = j.date;
   }catch(e){ fxDate = null; }
@@ -252,8 +255,19 @@ async function pollFx(){
 function prevDay(d){ const t = new Date(d); t.setDate(t.getDate()-1); return t.toISOString().slice(0,10); } // frankfurter devuelve el último día hábil hasta esa fecha
 MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = m.p; ref[m.k] = m.p; });
 function simTick(){ MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = Math.max(m.p*0.3, px[m.k] + (Math.random()-0.5)*2*m.vol + (m.p-px[m.k])*0.0005); }); }
-let liveOk = null, fxDate = null;
-pollBinance(); pollFx();
+let liveOk = null, fxDate = null, tdOk = null;
+async function pollTD(){
+  if (!TD_KEY || TD_KEY.startsWith("PON_AQUI")) return;
+  const list = MK.filter(m=>m.td);
+  try{
+    const r = await fetch("https://api.twelvedata.com/price?symbol=" + encodeURIComponent(list.map(m=>m.td).join(",")) + "&apikey=" + TD_KEY);
+    const j = await r.json(); let n = 0;
+    list.forEach(m => { const q = j[m.td] || (list.length===1 ? j : null); if (q && q.price){ const v = +q.price; if (!ref[m.k] || m.src==="sim") ref[m.k] = v; px[m.k] = v; m.src = "td"; m.p = v; n++; } });
+    tdOk = n>0;
+  }catch(e){ tdOk = false; }
+  refresh();
+}
+pollBinance(); pollFx(); pollTD(); setInterval(pollTD, TD_EVERY_MIN*60*1000);
 setInterval(pollBinance, 3000); setInterval(pollFx, 10*60*1000);
 setInterval(() => { simTick(); $("clock").textContent = new Date().toLocaleTimeString("es-ES"); refresh(); }, 1000);
 
@@ -314,12 +328,12 @@ function refresh(){
     $("p-"+cssId(m.k)).textContent = fmt(m.k, v);
     if (v!=null && r) { const ch = (v/r-1)*100; c.textContent = pct(ch); c.className = "c " + (ch>=0?"up":"down"); }
   });
-  $("src").textContent = (liveOk===false ? "Binance sin conexión · " : "") + (fxDate ? "Divisas: cierre BCE " + fxDate : "Divisas: sin conexión") + " · Petróleo y oro: simulados";
+  $("src").textContent = (liveOk===false ? "Binance sin conexión · " : "") + (tdOk ? "Divisas, oro y petróleo: Twelve Data (cada " + TD_EVERY_MIN + " min)" : (fxDate ? "Divisas: cierre BCE " + fxDate : "Divisas: sin conexión") + " · Petróleo y oro: simulados");
   // cabecera gráfico
   const m = BY[cur], v = px[cur], r = ref[cur];
   $("hPx").textContent = fmt(cur, v);
-  if (v!=null && r){ const ch=(v/r-1)*100; $("hChg").textContent = pct(ch) + (m.src==="live"?" 24 h":" vs. día anterior"); $("hChg").className = "mono " + (ch>=0?"up":"down"); }
-  $("hSrc").textContent = m.src==="live" ? "Precio en tiempo real (Binance)" : m.src==="daily" ? "Precio diario del BCE" : "Precio simulado";
+  if (v!=null && r){ const ch=(v/r-1)*100; $("hChg").textContent = pct(ch) + (m.src==="live"?" 24 h": m.src==="td"?" en sesión":" vs. día anterior"); $("hChg").className = "mono " + (ch>=0?"up":"down"); }
+  $("hSrc").textContent = m.src==="live" ? "Precio en tiempo real (Binance)" : m.src==="td" ? "Precio real (Twelve Data)" : m.src==="daily" ? "Precio diario del BCE" : "Precio simulado";
   // ticket
   const amt = +$("amt").value||0, lev = +$("lev").value||1, used = S.pos.reduce((a,p)=>a+p.amt,0);
   $("expo").textContent = eur(amt*lev); $("tPx").textContent = fmt(cur, v); $("free").textContent = eur(S.bal-used);

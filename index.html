@@ -133,6 +133,9 @@ footer{margin-top:24px;padding:12px 4px 0;border-top:1px solid var(--line);font-
       <div class="ph"><span>Mercados</span><span id="clock" class="mono" style="text-transform:none;font-weight:400"></span></div>
       <ul class="mk" id="mk"></ul>
       <div class="src" id="src"></div>
+      <div class="src" style="padding-top:0"><details><summary style="cursor:pointer">Clave Twelve Data</summary>
+        <div style="display:flex;gap:6px;margin-top:6px"><input id="tdKey" type="password" placeholder="pega tu API key" style="flex:1;min-width:0;font:12px var(--mono);padding:6px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px"><button class="ghost" id="tdSave">Guardar</button></div>
+        <div style="margin-top:4px">Se guarda solo en este navegador. Activa divisas, oro y petróleo en tiempo real.</div></details></div>
     </aside>
 
     <div class="panel">
@@ -223,7 +226,7 @@ const MK = [
   {k:"XAU/USD", d:"Oro",            tv:"OANDA:XAUUSD",    src:"sim",  p:4130, vol:1.4,  td:"XAU/USD", dec:2},
 ];
 // Clave de Twelve Data (plan gratuito: 800 consultas/día). Con ella, divisas, oro y petróleo van en tiempo real.
-const TD_KEY = "PON_AQUI_TU_CLAVE";
+let TD_KEY = ""; try { TD_KEY = localStorage.getItem("soralab-tdkey") || ""; } catch(e){}
 const TD_EVERY_MIN = 10;   // 5 mercados cada 10 min = 720 consultas/día
 const BY = Object.fromEntries(MK.map(m=>[m.k,m]));
 const px = {}, ref = {}, LS = "sala-practica-v2";
@@ -265,7 +268,7 @@ MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = m.p; ref[m.k] = m.p; });
 function simTick(){ MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = Math.max(m.p*0.3, px[m.k] + (Math.random()-0.5)*2*m.vol + (m.p-px[m.k])*0.0005); }); }
 let liveOk = null, fxDate = null, tdOk = null;
 async function pollTD(){
-  if (!TD_KEY || TD_KEY.startsWith("PON_AQUI")) return;
+  if (!TD_KEY) return;
   const list = MK.filter(m=>m.td);
   try{
     const r = await fetch("https://api.twelvedata.com/price?symbol=" + encodeURIComponent(list.map(m=>m.td).join(",")) + "&apikey=" + TD_KEY);
@@ -276,6 +279,8 @@ async function pollTD(){
   refresh();
 }
 pollBinance(); pollFx(); pollTD(); setInterval(pollTD, TD_EVERY_MIN*60*1000);
+$("tdKey").value = TD_KEY;
+$("tdSave").addEventListener("click", () => { TD_KEY = $("tdKey").value.trim(); try { localStorage.setItem("soralab-tdkey", TD_KEY); } catch(e){} tdOk = null; pollTD(); });
 setInterval(pollBinance, 3000); setInterval(pollFx, 10*60*1000);
 setInterval(() => { simTick(); $("clock").textContent = new Date().toLocaleTimeString("es-ES"); refresh(); }, 1000);
 

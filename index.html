@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sala de Práctica</title>
+<title>Sora Lab</title>
+<meta name="description" content="Sora Lab: simulador de trading con precios reales y análisis documentados.">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sora Lab">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout tipo plataforma: mercados a la izquierda, gráfico real en el centro, ticket a la derecha, cartera abajo. */
@@ -105,11 +113,11 @@ footer{margin-top:24px;padding:12px 4px 0;border-top:1px solid var(--line);font-
 <body>
 
 <header class="top">
-  <div class="brand">Sala de Práctica <small>simulador con precios reales</small></div>
+  <div class="brand">Sora Lab <small>práctica y análisis</small></div>
   <nav>
-    <a href="#simulador" data-v="simulador" class="on">Operar</a>
+    <a href="#simulador" data-v="simulador" class="on">Práctica</a>
     <a href="#cartera" data-v="cartera">Cartera</a>
-    <a href="#informes" data-v="informes">Informes</a>
+    <a href="#informes" data-v="informes">Análisis</a>
   </nav>
   <div class="acct">
     <div>Saldo<b id="bal">—</b></div>
@@ -414,6 +422,7 @@ function show(v){
 links.forEach(a => a.addEventListener("click", e => { e.preventDefault(); history.replaceState(null,"","#"+a.dataset.v); show(a.dataset.v); }));
 show((location.hash||"").replace("#",""));
 select(cur); setSide("buy"); refresh();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
 </html>

@@ -209,7 +209,7 @@ footer{margin-top:24px;padding:12px 4px 0;border-top:1px solid var(--line);font-
   </form>
 </section>
 
-<footer>Herramienta de práctica. Los precios de cripto y divisas vienen de fuentes públicas (Binance y Banco Central Europeo); petróleo y oro son simulados. No es asesoramiento financiero ni una cuenta real.</footer>
+<footer>Herramienta de práctica. Los precios de cripto, divisas y oro vienen de fuentes públicas (Binance, Twelve Data y Banco Central Europeo); el petróleo es simulado. No es asesoramiento financiero ni una cuenta real.</footer>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script>
@@ -222,7 +222,7 @@ const MK = [
   {k:"EUR/USD", d:"Euro / Dólar",   tv:"FX:EURUSD",       src:"daily", fx:"USD",     td:"EUR/USD", dec:5},
   {k:"EUR/JPY", d:"Euro / Yen",     tv:"FX:EURJPY",       src:"daily", fx:"JPY",     td:"EUR/JPY", dec:3},
   {k:"GBP/USD", d:"Libra / Dólar",  tv:"FX:GBPUSD",       src:"daily", fx:"GBPUSD",  td:"GBP/USD", dec:5},
-  {k:"USOIL",   d:"Petróleo WTI",   tv:"TVC:USOIL",       src:"sim",  p:98.9, vol:0.06, td:"WTI/USD", dec:2},
+  {k:"USOIL",   d:"Petróleo WTI",   tv:"TVC:USOIL",       src:"sim",  p:98.9, vol:0.06, dec:2},   // el WTI no está en el plan gratuito de Twelve Data
   {k:"XAU/USD", d:"Oro",            tv:"OANDA:XAUUSD",    src:"sim",  p:4130, vol:1.4,  td:"XAU/USD", dec:2},
 ];
 // Clave de Twelve Data (plan gratuito: 800 consultas/día). Con ella, divisas, oro y petróleo van en tiempo real.
@@ -341,7 +341,8 @@ function refresh(){
     $("p-"+cssId(m.k)).textContent = fmt(m.k, v);
     if (v!=null && r) { const ch = (v/r-1)*100; c.textContent = pct(ch); c.className = "c " + (ch>=0?"up":"down"); }
   });
-  $("src").textContent = (liveOk===false ? "Binance sin conexión · " : "") + (tdOk ? "Divisas, oro y petróleo: Twelve Data (cada " + TD_EVERY_MIN + " min)" : (fxDate ? "Divisas: cierre BCE " + fxDate : "Divisas: sin conexión") + " · Petróleo y oro: simulados");
+  const nTd = MK.filter(m=>m.src==="td").length;
+  $("src").textContent = (liveOk===false ? "Binance sin conexión · " : "") + (nTd ? "Divisas y oro: Twelve Data (cada " + TD_EVERY_MIN + " min) · Petróleo: simulado" : (fxDate ? "Divisas: cierre BCE " + fxDate : "Divisas: sin conexión") + " · Petróleo y oro: simulados");
   // cabecera gráfico
   const m = BY[cur], v = px[cur], r = ref[cur];
   $("hPx").textContent = fmt(cur, v);

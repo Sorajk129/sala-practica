@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sora Lab</title>
-<meta name="description" content="Sora Lab: simulador de trading con precios reales y análisis documentados.">
+<meta name="description" content="Sora Lab: fondo de práctica con capital ficticio, precios reales y análisis documentados.">
 <meta name="theme-color" content="#0f1115">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
@@ -14,87 +14,94 @@
 <meta name="apple-mobile-web-app-title" content="Sora Lab">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout tipo plataforma: mercados a la izquierda, gráfico real en el centro, ticket a la derecha, cartera abajo. */
+/* Layout tipo eToro: menú lateral fijo, contenido en tarjetas, barra de resumen fija abajo en Portafolio. En móvil el menú pasa a pestañas inferiores. */
 :root{
   --bg:#0f1115; --panel:#161a21; --panel2:#1c212a; --fg:#e7e9ee; --mute:#8a919e; --line:#262c37;
   --accent:#2f80ed; --up:#1fbf75; --down:#f0504b;
   --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  color-scheme:dark;
+  --side:220px; --tabs:0px; color-scheme:dark;
 }
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
   --bg:#eef0f4; --panel:#ffffff; --panel2:#f5f6f9; --fg:#1a1d24; --mute:#6a7180; --line:#dfe3ea; --accent:#1f6fd1; --up:#0f9d5e; --down:#d9403a; color-scheme:light}}
 :root[data-theme="light"]{--bg:#eef0f4; --panel:#ffffff; --panel2:#f5f6f9; --fg:#1a1d24; --mute:#6a7180; --line:#dfe3ea; --accent:#1f6fd1; --up:#0f9d5e; --down:#d9403a; color-scheme:light}
-
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans)}
-body{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:0 40px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .up{color:var(--up)} .down{color:var(--down)}
-a{color:var(--accent)}
-
-/* Cabecera */
-.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:12px 4px;border-bottom:1px solid var(--line)}
-.brand{font-weight:700;font-size:16px;letter-spacing:.01em}
-.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
-nav{display:flex;gap:4px}
-nav a{color:var(--mute);text-decoration:none;padding:6px 12px;border-radius:6px;font-weight:500}
-nav a.on{color:var(--fg);background:var(--panel2)}
-.acct{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
-.acct div{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
-.acct b{display:block;font-family:var(--mono);font-size:15px;font-weight:500;color:var(--fg);font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font-family:var(--sans)}
 
-section{display:none;padding-top:14px} section.on{display:block}
+/* Menú lateral */
+.side{position:fixed;left:0;top:0;bottom:0;width:var(--side);background:var(--panel);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:4px;padding-top:calc(18px + env(safe-area-inset-top,0px))}
+.brand{font-weight:700;font-size:18px;padding:4px 10px 16px;display:flex;align-items:center;gap:10px}
+.brand i{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;font-style:normal;font-weight:700}
+.side a{display:flex;align-items:center;gap:12px;color:var(--mute);text-decoration:none;padding:10px 12px;border-radius:8px;font-weight:500;font-size:15px}
+.side a svg{width:20px;height:20px;flex:none}
+.side a.on{color:var(--fg);background:var(--panel2)}
+.side .dep{margin-top:auto}
+.btnP{display:block;width:100%;font:15px var(--sans);font-weight:700;padding:12px;border:0;border-radius:8px;cursor:pointer;color:#fff;background:var(--accent);text-align:center}
+.btnP.buy{background:var(--up)} .btnP.sell{background:var(--down)} .btnP:disabled{opacity:.45;cursor:default}
+.ghost{font:12px var(--sans);font-weight:600;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg);cursor:pointer}
 
-/* Simulador */
-.grid{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:12px;align-items:start}
-@media (max-width:1050px){.grid{grid-template-columns:220px minmax(0,1fr)}.ticket{grid-column:1/-1}}
-@media (max-width:680px){.grid{grid-template-columns:1fr}.ticket{grid-column:auto}}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0}
-.ph{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-.mk{list-style:none;margin:0;padding:6px}
-.mk li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:7px;cursor:pointer}
-.mk li:hover{background:var(--panel2)} .mk li.on{background:var(--panel2);box-shadow:inset 3px 0 0 var(--accent)}
-.mk .n{font-weight:600} .mk .d{font-size:11px;color:var(--mute)}
-.mk .p{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums} .mk .c{font-family:var(--mono);font-size:11px;text-align:right}
-.src{font-size:10px;color:var(--mute);padding:2px 10px 8px}
-.chartHead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:12px 14px 8px}
-.chartHead .big{font-family:var(--mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
-.chartHead .nm{font-weight:600;font-size:16px}
-.tv{height:460px;min-height:300px;border-top:1px solid var(--line);border-radius:0 0 10px 10px;overflow:hidden;background:var(--panel2)}
-@media (max-width:680px){.tv{height:360px}}
-.ticket .body{padding:14px;display:grid;gap:12px}
+/* Contenido */
+main{margin-left:var(--side);padding:20px max(20px,env(safe-area-inset-right,0px)) 110px 20px;padding-top:calc(20px + env(safe-area-inset-top,0px));min-height:100vh}
+h1{font-size:22px;font-weight:600;margin:0 0 14px}
+.sub{color:var(--mute);margin:-8px 0 14px;font-size:13px}
+section{display:none} section.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tbl{overflow-x:auto;min-width:0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:right;font-weight:600;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:12px 14px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{text-align:right;padding:12px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+th.t,td.t{text-align:left;font-family:var(--sans)}
+tr:last-child td{border-bottom:0}
+tbody tr.row:hover{background:var(--panel2);cursor:pointer}
+.name b{display:block;font-weight:600} .name span{font-size:12px;color:var(--mute)}
+.empty{color:var(--mute);padding:28px 16px;font-size:14px;text-align:center}
+.pxBtn{font:13px var(--mono);font-weight:500;padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--fg);cursor:pointer;min-width:96px}
+.pxBtn:hover{border-color:var(--accent)}
+.sideTag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:4px;margin-left:6px}
+.sideTag.buy{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)} .sideTag.sell{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
+.src{font-size:11px;color:var(--mute);padding:10px 16px}
+
+/* Barra inferior de resumen (Portafolio) */
+.sum{position:fixed;left:var(--side);right:0;bottom:var(--tabs);background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:12px max(20px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) 20px;gap:10px;z-index:5}
+.sum div{text-align:center;position:relative}
+.sum div+div::before{content:"+";position:absolute;left:-8px;top:50%;transform:translate(-50%,-50%);color:var(--mute);font-size:16px}
+.sum div:last-child::before{content:"="}
+.sum span{display:block;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.sum b{font-family:var(--mono);font-size:17px;font-weight:500;font-variant-numeric:tabular-nums}
+@media (max-width:560px){.sum b{font-size:14px}.sum span{font-size:9px}}
+
+/* Diálogos */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.ov.on{display:flex}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:420px;max-height:92vh;overflow:auto}
+.dlg .hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg .hd b{font-size:16px} .dlg .hd button{background:none;border:0;color:var(--mute);font-size:22px;cursor:pointer;line-height:1}
+.dlg .bd{padding:16px 18px;display:grid;gap:12px}
 .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{background:transparent;color:var(--mute);font-weight:600;padding:10px;border:0;cursor:pointer}
 .seg button.buy.on{background:var(--up);color:#fff} .seg button.sell.on{background:var(--down);color:#fff}
-label.f{display:grid;gap:4px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
-label.f input,label.f select{font:15px var(--mono);padding:9px 10px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:7px;width:100%}
+label.f{display:grid;gap:4px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;min-width:0}
+label.f input,label.f select{font:16px var(--mono);padding:10px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;width:100%}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .kv{display:flex;justify-content:space-between;font-size:13px;color:var(--mute)} .kv b{font-family:var(--mono);font-weight:500;color:var(--fg)}
-.btn{font:15px var(--sans);font-weight:700;padding:12px;border:0;border-radius:8px;cursor:pointer;color:#fff;background:var(--accent)}
-.btn.buy{background:var(--up)} .btn.sell{background:var(--down)}
-.btn:disabled{opacity:.45;cursor:default}
-.ghost{font:12px var(--sans);font-weight:600;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg);cursor:pointer}
 .msg{font-size:12px;color:var(--mute);min-height:18px}
+.big{font-family:var(--mono);font-size:26px;font-weight:500;text-align:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{font:13px var(--mono);padding:7px 12px;border:1px solid var(--line);border-radius:20px;background:var(--panel2);color:var(--fg);cursor:pointer}
 
-/* Tablas */
-.tbl{overflow-x:auto;min-width:0}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;font-weight:600;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-td.t,th.t{font-family:var(--sans)} tr:last-child td{border-bottom:0}
-.empty{color:var(--mute);padding:16px 14px;font-size:13px}
-.below{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;margin-top:12px}
-@media (max-width:900px){.below{grid-template-columns:1fr}}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+/* Stats de cartera */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 .stat span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
 .stat b{display:block;font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:2px}
-.bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--accent)}
 
 /* Informes */
-.lead{max-width:62ch;color:var(--mute);margin:0 0 14px;padding:0 4px}
-.rep{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:10px}
+.lead{max-width:62ch;color:var(--mute);margin:0 0 14px}
+.rep{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:10px}
 .rep .meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;align-items:center}
 .rep h3{margin:0 0 8px;font-size:17px;font-weight:600;text-wrap:balance}
 .rep p{margin:0 0 8px;max-width:70ch;white-space:pre-wrap}
@@ -102,102 +109,77 @@ td.t,th.t{font-family:var(--sans)} tr:last-child td{border-bottom:0}
 .tag.ok{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}
 .tag.ko{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
 .tag.open,.tag.ex{background:var(--panel2);color:var(--mute)}
-form.new{display:grid;gap:10px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+form.new{display:grid;gap:10px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
 form.new textarea{font:14px var(--sans);min-height:130px;resize:vertical;padding:9px 10px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:7px;width:100%}
 form.new input,form.new select{font:14px var(--sans);padding:9px 10px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:7px;width:100%}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}@media (max-width:600px){.g3{grid-template-columns:1fr}}
-footer{margin-top:24px;padding:12px 4px 0;border-top:1px solid var(--line);font-size:11px;color:var(--mute);max-width:80ch}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+footer{margin-top:24px;font-size:11px;color:var(--mute);max-width:80ch}
+
+/* Móvil: pestañas abajo */
+@media (max-width:760px){
+  :root{--side:0px;--tabs:calc(58px + env(safe-area-inset-bottom,0px))}
+  .side{top:auto;right:0;width:auto;height:var(--tabs);flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-right:0;border-top:1px solid var(--line);z-index:6}
+  .brand,.side .dep{display:none}
+  .side a{flex:1;flex-direction:column;gap:3px;font-size:11px;padding:6px 4px;justify-content:center}
+  main{margin-left:0;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(var(--tabs) + 100px) max(16px,env(safe-area-inset-left,0px))}
+  .hideM{display:none}
+  .mDep{display:block!important}
+}
+.mDep{display:none;margin-bottom:12px}
 </style>
 </head>
 <body>
 
-<header class="top">
-  <div class="brand">Sora Lab <small>práctica y análisis</small></div>
-  <nav>
-    <a href="#simulador" data-v="simulador" class="on">Práctica</a>
-    <a href="#cartera" data-v="cartera">Cartera</a>
-    <a href="#informes" data-v="informes">Análisis</a>
-  </nav>
-  <div class="acct">
-    <div>Saldo<b id="bal">—</b></div>
-    <div>Equity<b id="eq">—</b></div>
-    <div>P/L abierto<b id="pl">—</b></div>
-  </div>
-</header>
+<nav class="side">
+  <div class="brand"><i>S</i>Sora Lab</div>
+  <a href="#mercados" data-v="mercados" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Mercados</a>
+  <a href="#portafolio" data-v="portafolio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Portafolio</a>
+  <a href="#informes" data-v="informes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg>Informes</a>
+  <a href="#ajustes" data-v="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 01-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 01-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 012.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 012.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Ajustes</a>
+  <div class="dep"><button class="btnP" id="depBtn">Depositar fondos</button></div>
+</nav>
 
-<!-- ───────── OPERAR ───────── -->
-<section id="simulador" class="on">
-  <div class="grid">
-    <aside class="panel">
-      <div class="ph"><span>Mercados</span><span id="clock" class="mono" style="text-transform:none;font-weight:400"></span></div>
-      <ul class="mk" id="mk"></ul>
-      <div class="src" id="src"></div>
-      <div class="src" style="padding-top:0"><details><summary style="cursor:pointer">Clave Twelve Data</summary>
-        <div style="display:flex;gap:6px;margin-top:6px"><input id="tdKey" type="password" placeholder="pega tu API key" style="flex:1;min-width:0;font:12px var(--mono);padding:6px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px"><button class="ghost" id="tdSave">Guardar</button></div>
-        <div style="margin-top:4px">Se guarda solo en este navegador. Activa divisas, oro y petróleo en tiempo real.</div></details></div>
-    </aside>
-
-    <div class="panel">
-      <div class="chartHead">
-        <span class="nm" id="hName">—</span>
-        <span class="big" id="hPx">—</span>
-        <span class="mono" id="hChg"></span>
-        <span class="msg" id="hSrc" style="margin-left:auto"></span>
-      </div>
-      <div class="tv" id="tv"></div>
-    </div>
-
-    <div class="panel ticket">
-      <div class="ph"><span>Orden</span><span id="tSym" style="text-transform:none"></span></div>
-      <div class="body">
-        <div class="seg"><button class="buy on" id="sideB">Comprar</button><button class="sell" id="sideS">Vender</button></div>
-        <div class="two">
-          <label class="f">Importe (€)<input id="amt" type="number" min="10" step="10" value="500"></label>
-          <label class="f">Apalancamiento<select id="lev"><option>1</option><option>2</option><option selected>5</option><option>10</option><option>20</option><option>30</option></select></label>
-        </div>
-        <div class="two">
-          <label class="f">Stop loss (€)<input id="sl" type="number" min="0" step="5" placeholder="opcional"></label>
-          <label class="f">Objetivo (€)<input id="tp" type="number" min="0" step="5" placeholder="opcional"></label>
-        </div>
-        <div class="kv"><span>Exposición</span><b id="expo">—</b></div>
-        <div class="kv"><span>Precio actual</span><b id="tPx">—</b></div>
-        <div class="kv"><span>Saldo disponible</span><b id="free">—</b></div>
-        <button class="btn buy" id="go">Abrir compra</button>
-        <div class="msg" id="msg"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-top:12px">
-    <div class="ph"><span>Posiciones abiertas</span><span id="posN" style="text-transform:none"></span></div>
-    <div class="tbl"><table><thead><tr><th class="t">Mercado</th><th class="t">Lado</th><th>Importe</th><th>Apal.</th><th>Entrada</th><th>Actual</th><th>SL / TP</th><th>P/L</th><th></th></tr></thead><tbody id="pos"></tbody></table></div>
-    <div class="empty" id="posEmpty">Sin posiciones. Elige un mercado, importe y apalancamiento y abre la orden.</div>
+<main>
+<!-- ───────── MERCADOS ───────── -->
+<section id="mercados" class="on">
+  <h1>Mercados</h1>
+  <p class="sub">Toca un mercado para operar. El análisis del gráfico se hace fuera, en tu plataforma de gráficos.</p>
+  <div class="card">
+    <div class="tbl"><table><thead><tr><th class="t">Mercado</th><th>Precio</th><th>Cambio</th><th class="hideM"></th></tr></thead><tbody id="mk"></tbody></table></div>
+    <div class="src" id="src"></div>
   </div>
 </section>
 
-<!-- ───────── CARTERA ───────── -->
-<section id="cartera">
-  <div class="stats">
-    <div class="stat"><span>Equity</span><b id="cEq">—</b><div class="bar"><i id="cBar" style="width:50%"></i></div></div>
-    <div class="stat"><span>Rendimiento</span><b id="cRet">—</b></div>
-    <div class="stat"><span>Operaciones</span><b id="nOps">0</b></div>
-    <div class="stat"><span>Acierto</span><b id="winr">—</b></div>
-    <div class="stat"><span>Mejor / peor</span><b id="bw" style="font-size:15px">—</b></div>
+<!-- ───────── PORTAFOLIO ───────── -->
+<section id="portafolio">
+  <h1>Portafolio</h1>
+  <div class="mDep"><button class="btnP" id="depBtnM">Depositar fondos</button></div>
+  <div class="card">
+    <div class="ch"><span>Posiciones abiertas</span><span id="posN" style="text-transform:none"></span></div>
+    <div class="tbl"><table><thead><tr><th class="t">Mercado</th><th>Unidades</th><th>Apertura</th><th>Invertido</th><th>G/P</th><th>G/P %</th><th>Valor</th><th>Precio</th></tr></thead><tbody id="pos"></tbody></table></div>
+    <div class="empty" id="posEmpty">No tienes posiciones abiertas. Ve a Mercados y abre tu primera operación.</div>
   </div>
-  <div class="panel">
-    <div class="ph"><span>Historial</span><button class="ghost" id="reset">Reiniciar cuenta</button></div>
-    <div class="tbl"><table><thead><tr><th class="t">Cierre</th><th class="t">Mercado</th><th class="t">Lado</th><th>Importe</th><th>Apal.</th><th>Entrada</th><th>Salida</th><th class="t">Motivo</th><th>P/L</th></tr></thead><tbody id="hist"></tbody></table></div>
+
+  <h1 style="margin-top:24px;font-size:18px">Historial</h1>
+  <div class="stats">
+    <div class="stat"><span>Rendimiento</span><b id="cRet">—</b></div>
+    <div class="stat"><span>Operaciones cerradas</span><b id="nOps">0</b></div>
+    <div class="stat"><span>Acierto</span><b id="winr">—</b></div>
+    <div class="stat"><span>Depositado</span><b id="cDep">—</b></div>
+  </div>
+  <div class="card">
+    <div class="tbl"><table><thead><tr><th class="t">Cierre</th><th class="t">Mercado</th><th>Invertido</th><th>Apertura</th><th>Cierre</th><th class="t">Motivo</th><th>G/P</th></tr></thead><tbody id="hist"></tbody></table></div>
     <div class="empty" id="histEmpty">Todavía no has cerrado ninguna operación.</div>
   </div>
 </section>
 
 <!-- ───────── INFORMES ───────── -->
 <section id="informes">
+  <h1>Informes del fondo</h1>
   <p class="lead">Cada análisis queda escrito con fecha y escenario antes de que ocurra. Cuando el mercado responde, se anota el resultado. Así el historial se puede comprobar.</p>
   <div id="reps"></div>
   <form class="new" id="repForm">
-    <div class="ph" style="padding:0 0 8px;border:0">Nuevo informe</div>
+    <div class="ch" style="padding:0 0 8px;border:0">Nuevo informe</div>
     <div class="g3">
       <label class="f">Mercado<input id="rSym" placeholder="EUR/USD" required></label>
       <label class="f">Pilar<select id="rPil"><option>Pilar 1 · rango</option><option>Pilar 2 · estructural</option></select></label>
@@ -205,32 +187,108 @@ footer{margin-top:24px;padding:12px 4px 0;border-top:1px solid var(--line);font-
     </div>
     <label class="f">Título<input id="rTitle" placeholder="Qué espero y por qué" required></label>
     <label class="f">Análisis y escenario<textarea id="rBody" placeholder="Contexto, niveles, zona de entrada, invalidación y objetivo." required></textarea></label>
-    <div><button class="btn" type="submit">Guardar informe</button></div>
+    <div><button class="btnP" type="submit" style="width:auto;padding:12px 20px">Guardar informe</button></div>
   </form>
 </section>
 
-<footer>Herramienta de práctica. Los precios de cripto, divisas y oro vienen de fuentes públicas (Binance, Twelve Data y Banco Central Europeo); el petróleo es simulado. No es asesoramiento financiero ni una cuenta real.</footer>
+<!-- ───────── AJUSTES ───────── -->
+<section id="ajustes">
+  <h1>Ajustes</h1>
+  <div class="card" style="margin-bottom:12px">
+    <div class="ch">Precios en tiempo real</div>
+    <div class="bd" style="padding:16px;display:grid;gap:10px">
+      <label class="f">Clave Twelve Data<input id="tdKey" type="password" placeholder="pega tu API key"></label>
+      <div><button class="ghost" id="tdSave">Guardar</button></div>
+      <div class="msg">Se guarda solo en este navegador. Activa divisas y oro en tiempo real; cripto va siempre en tiempo real con Binance.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">Cuenta de práctica</div>
+    <div style="padding:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="ghost" id="reset">Reiniciar cuenta</button><span class="msg">Vuelve a 10.000 € de capital ficticio y borra posiciones e historial. Los informes se conservan.</span>
+    </div>
+  </div>
+  <footer>Sora Lab es un fondo de práctica: todo el capital es ficticio y no se puede depositar ni retirar dinero real. Los precios de cripto, divisas y oro vienen de fuentes públicas (Binance, Twelve Data, Banco Central Europeo); el petróleo es simulado. No es asesoramiento financiero.</footer>
+</section>
+</main>
 
-<script src="https://s3.tradingview.com/tv.js"></script>
+<!-- Barra de resumen -->
+<div class="sum" id="sum" hidden>
+  <div><span>Disponible</span><b id="sAvail">—</b></div>
+  <div><span>Invertido</span><b id="sInv">—</b></div>
+  <div><span>Ganancia / pérdida</span><b id="sPl">—</b></div>
+  <div><span>Valor total</span><b id="sTot">—</b></div>
+</div>
+
+<!-- Diálogo de orden -->
+<div class="ov" id="ovOrd">
+  <div class="dlg">
+    <div class="hd"><b id="oTitle">Operar</b><button id="oClose" aria-label="Cerrar">×</button></div>
+    <div class="bd">
+      <div class="big" id="oPx">—</div>
+      <div class="msg" id="oSrc" style="text-align:center;margin-top:-8px"></div>
+      <div class="seg"><button class="buy on" id="sideB">Comprar</button><button class="sell" id="sideS">Vender</button></div>
+      <label class="f">Importe (€)<input id="amt" type="number" min="10" step="10" value="500"></label>
+      <div class="chips" id="chips"></div>
+      <div class="two">
+        <label class="f">Apalancamiento<select id="lev"><option>1</option><option>2</option><option selected>5</option><option>10</option><option>20</option><option>30</option></select></label>
+        <label class="f">Unidades<input id="units" readonly></label>
+      </div>
+      <div class="two">
+        <label class="f">Stop loss (€)<input id="sl" type="number" min="0" step="5" placeholder="opcional"></label>
+        <label class="f">Objetivo (€)<input id="tp" type="number" min="0" step="5" placeholder="opcional"></label>
+      </div>
+      <div class="kv"><span>Exposición</span><b id="expo">—</b></div>
+      <div class="kv"><span>Disponible</span><b id="free">—</b></div>
+      <button class="btnP buy" id="go">Abrir compra</button>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Diálogo de cierre -->
+<div class="ov" id="ovClose">
+  <div class="dlg">
+    <div class="hd"><b>Cerrar posición</b><button id="cClose" aria-label="Cerrar">×</button></div>
+    <div class="bd">
+      <div id="cInfo" class="kv" style="flex-direction:column;gap:6px;align-items:stretch"></div>
+      <button class="btnP" id="cGo">Cerrar al precio actual</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diálogo de depósito -->
+<div class="ov" id="ovDep">
+  <div class="dlg">
+    <div class="hd"><b>Depositar fondos</b><button id="dClose" aria-label="Cerrar">×</button></div>
+    <div class="bd">
+      <div class="msg">Capital ficticio para practicar. No es dinero real y no se puede retirar.</div>
+      <label class="f">Importe (€)<input id="dAmt" type="number" min="100" step="100" value="1000"></label>
+      <div class="chips"><button data-d="500">500 €</button><button data-d="1000">1.000 €</button><button data-d="5000">5.000 €</button><button data-d="10000">10.000 €</button></div>
+      <button class="btnP" id="dGo">Depositar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ───────── Mercados ─────────
-// live: Binance (tiempo real) · daily: BCE vía Frankfurter (un precio al día) · sim: simulado
+// live: Binance (tiempo real) · td: Twelve Data (con clave) · daily: BCE (un precio al día) · sim: simulado
 const MK = [
-  {k:"BTC/USD", d:"Bitcoin",        tv:"BINANCE:BTCUSDT", src:"live", bin:"BTCUSDT", dec:0},
-  {k:"ETH/USD", d:"Ethereum",       tv:"BINANCE:ETHUSDT", src:"live", bin:"ETHUSDT", dec:2},
-  {k:"SOL/USD", d:"Solana",         tv:"BINANCE:SOLUSDT", src:"live", bin:"SOLUSDT", dec:2},
-  {k:"EUR/USD", d:"Euro / Dólar",   tv:"FX:EURUSD",       src:"daily", fx:"USD",     td:"EUR/USD", dec:5},
-  {k:"EUR/JPY", d:"Euro / Yen",     tv:"FX:EURJPY",       src:"daily", fx:"JPY",     td:"EUR/JPY", dec:3},
-  {k:"GBP/USD", d:"Libra / Dólar",  tv:"FX:GBPUSD",       src:"daily", fx:"GBPUSD",  td:"GBP/USD", dec:5},
-  {k:"USOIL",   d:"Petróleo WTI",   tv:"TVC:USOIL",       src:"sim",  p:98.9, vol:0.06, dec:2},   // el WTI no está en el plan gratuito de Twelve Data
-  {k:"XAU/USD", d:"Oro",            tv:"OANDA:XAUUSD",    src:"sim",  p:4130, vol:1.4,  td:"XAU/USD", dec:2},
+  {k:"EUR/USD", d:"Euro / Dólar",   src:"daily", fx:"USD",    td:"EUR/USD", dec:5},
+  {k:"EUR/JPY", d:"Euro / Yen",     src:"daily", fx:"JPY",    td:"EUR/JPY", dec:3},
+  {k:"GBP/USD", d:"Libra / Dólar",  src:"daily", fx:"GBPUSD", td:"GBP/USD", dec:5},
+  {k:"XAU/USD", d:"Oro",            src:"sim",  p:4130, vol:1.4, td:"XAU/USD", dec:2},
+  {k:"USOIL",   d:"Petróleo WTI",   src:"sim",  p:98.9, vol:0.06, dec:2},
+  {k:"BTC/USD", d:"Bitcoin",        src:"live", bin:"BTCUSDT", dec:0},
+  {k:"ETH/USD", d:"Ethereum",       src:"live", bin:"ETHUSDT", dec:2},
+  {k:"SOL/USD", d:"Solana",         src:"live", bin:"SOLUSDT", dec:2},
 ];
-// Clave de Twelve Data (plan gratuito: 800 consultas/día). Con ella, divisas, oro y petróleo van en tiempo real.
 let TD_KEY = ""; try { TD_KEY = localStorage.getItem("soralab-tdkey") || ""; } catch(e){}
-const TD_EVERY_MIN = 10;   // 5 mercados cada 10 min = 720 consultas/día
+const TD_EVERY_MIN = 10;   // 4 mercados cada 10 min = 576 consultas/día (plan gratuito: 800)
 const BY = Object.fromEntries(MK.map(m=>[m.k,m]));
-const px = {}, ref = {}, LS = "sala-practica-v2";
-let S = {bal:10000, pos:[], hist:[], reps:null, nextId:1};
+const START = 10000;
+const px = {}, ref = {}, LS = "soralab-v2";
+let S = {bal:START, dep:START, pos:[], hist:[], reps:null, nextId:1};
 try { const s = JSON.parse(localStorage.getItem(LS)); if (s && typeof s.bal==="number") S = Object.assign(S,s); } catch(e){}
 function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }
 
@@ -240,13 +298,14 @@ const fmt = (k,v) => v==null||isNaN(v) ? "—" : v.toLocaleString("es-ES",{minim
 const pct = v => (v>=0?"+":"") + v.toFixed(2) + " %";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const plOf = p => px[p.sym]==null ? 0 : (p.side==="buy" ? px[p.sym]/p.entry-1 : 1-px[p.sym]/p.entry) * p.amt * p.lev;
+const srcName = m => m.src==="live" ? "Tiempo real · Binance" : m.src==="td" ? "Tiempo real · Twelve Data" : m.src==="daily" ? "Cierre diario · BCE" : "Precio simulado";
 
 // ───────── Precios ─────────
+let liveOk = null, fxDate = null;
 async function pollBinance(){
   const syms = MK.filter(m=>m.src==="live").map(m=>m.bin);
   try{
-    const r = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=" + encodeURIComponent(JSON.stringify(syms)));
-    const j = await r.json();
+    const j = await (await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=" + encodeURIComponent(JSON.stringify(syms)))).json();
     j.forEach(t => { const m = MK.find(x=>x.bin===t.symbol); if(!m) return; px[m.k] = +t.lastPrice; ref[m.k] = +t.lastPrice - +t.priceChange; });
     liveOk = true;
   }catch(e){ liveOk = false; }
@@ -254,141 +313,120 @@ async function pollBinance(){
 }
 async function pollFx(){
   try{
-    const r = await fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,JPY,GBP");
-    const j = await r.json();
-    px["EUR/USD"] = j.rates.USD; px["EUR/JPY"] = j.rates.JPY; px["GBP/USD"] = j.rates.USD / j.rates.GBP;
+    const j = await (await fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,JPY,GBP")).json();
+    const set = (k,v) => { if (BY[k].src==="daily") px[k] = v; if (!ref[k]) ref[k] = v; };
+    set("EUR/USD", j.rates.USD); set("EUR/JPY", j.rates.JPY); set("GBP/USD", j.rates.USD / j.rates.GBP);
     const y = await (await fetch("https://api.frankfurter.dev/v1/" + prevDay(j.date) + "?base=EUR&symbols=USD,JPY,GBP")).json();
     ref["EUR/USD"] = y.rates.USD; ref["EUR/JPY"] = y.rates.JPY; ref["GBP/USD"] = y.rates.USD / y.rates.GBP;
     fxDate = j.date;
   }catch(e){ fxDate = null; }
   refresh();
 }
-function prevDay(d){ const t = new Date(d); t.setDate(t.getDate()-1); return t.toISOString().slice(0,10); } // frankfurter devuelve el último día hábil hasta esa fecha
-MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = m.p; ref[m.k] = m.p; });
-function simTick(){ MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = Math.max(m.p*0.3, px[m.k] + (Math.random()-0.5)*2*m.vol + (m.p-px[m.k])*0.0005); }); }
-let liveOk = null, fxDate = null, tdOk = null;
+function prevDay(d){ const t = new Date(d); t.setDate(t.getDate()-1); return t.toISOString().slice(0,10); }
 async function pollTD(){
   if (!TD_KEY) return;
   const list = MK.filter(m=>m.td);
   try{
-    const r = await fetch("https://api.twelvedata.com/price?symbol=" + encodeURIComponent(list.map(m=>m.td).join(",")) + "&apikey=" + TD_KEY);
-    const j = await r.json(); let n = 0;
-    list.forEach(m => { const q = j[m.td] || (list.length===1 ? j : null); if (q && q.price){ const v = +q.price; if (!ref[m.k] || m.src==="sim") ref[m.k] = v; px[m.k] = v; m.src = "td"; m.p = v; n++; } });
-    tdOk = n>0;
-  }catch(e){ tdOk = false; }
+    const j = await (await fetch("https://api.twelvedata.com/price?symbol=" + encodeURIComponent(list.map(m=>m.td).join(",")) + "&apikey=" + TD_KEY)).json();
+    list.forEach(m => { const q = j[m.td] || (list.length===1 ? j : null); if (q && q.price){ const v = +q.price; if (!ref[m.k] || m.src==="sim") ref[m.k] = v; px[m.k] = v; m.src = "td"; m.p = v; } });
+  }catch(e){}
   refresh();
 }
-pollBinance(); pollFx(); pollTD(); setInterval(pollTD, TD_EVERY_MIN*60*1000);
-$("tdKey").value = TD_KEY;
-$("tdSave").addEventListener("click", () => { TD_KEY = $("tdKey").value.trim(); try { localStorage.setItem("soralab-tdkey", TD_KEY); } catch(e){} tdOk = null; pollTD(); });
-setInterval(pollBinance, 3000); setInterval(pollFx, 10*60*1000);
-setInterval(() => { simTick(); $("clock").textContent = new Date().toLocaleTimeString("es-ES"); refresh(); }, 1000);
+MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = m.p; ref[m.k] = m.p; });
+function simTick(){ MK.filter(m=>m.src==="sim").forEach(m => { px[m.k] = Math.max(m.p*0.3, px[m.k] + (Math.random()-0.5)*2*m.vol + (m.p-px[m.k])*0.0005); }); }
+pollBinance(); pollFx(); pollTD();
+setInterval(pollBinance, 3000); setInterval(pollFx, 10*60*1000); setInterval(pollTD, TD_EVERY_MIN*60*1000);
+setInterval(() => { simTick(); refresh(); }, 1000);
 
-// ───────── Lista de mercados y gráfico ─────────
-let cur = MK[0].k, side = "buy", widget = null;
-const list = $("mk");
+// ───────── Lista de mercados ─────────
+const mkBody = $("mk");
 MK.forEach(m => {
-  const li = document.createElement("li"); li.dataset.k = m.k;
-  li.innerHTML = `<span class="n">${m.k}</span><span class="p" id="p-${cssId(m.k)}">—</span><span class="d">${m.d}</span><span class="c" id="c-${cssId(m.k)}"></span>`;
-  li.addEventListener("click", () => select(m.k));
-  list.appendChild(li);
+  const tr = document.createElement("tr"); tr.className = "row"; tr.dataset.k = m.k;
+  tr.innerHTML = `<td class="t name"><b>${m.k}</b><span>${m.d}</span></td><td id="p-${id(m.k)}">—</td><td id="c-${id(m.k)}"></td><td class="hideM"><button class="pxBtn">Operar</button></td>`;
+  tr.addEventListener("click", () => openOrder(m.k)); mkBody.appendChild(tr);
 });
-function cssId(k){ return k.replace(/[^a-z0-9]/gi,"_"); }
-function select(k){
-  cur = k;
-  list.querySelectorAll("li").forEach(li => li.classList.toggle("on", li.dataset.k===k));
-  $("hName").textContent = k + " · " + BY[k].d; $("tSym").textContent = k;
-  mountChart(); refresh();
-}
-function mountChart(){
-  const el = $("tv"); el.innerHTML = "";
-  if (typeof TradingView === "undefined") { el.innerHTML = '<div class="empty">El gráfico de TradingView no se ha cargado. Abre la página con conexión a internet.</div>'; return; }
-  const dark = matchMedia("(prefers-color-scheme:dark)").matches && document.documentElement.dataset.theme!=="light";
-  widget = new TradingView.widget({ container_id:"tv", autosize:true, symbol:BY[cur].tv, interval:"60", timezone:"Europe/Lisbon",
-    theme: dark?"dark":"light", style:"1", locale:"es", toolbar_bg:"transparent", hide_side_toolbar:false, allow_symbol_change:false, save_image:false, withdateranges:true });
-}
+function id(k){ return k.replace(/[^a-z0-9]/gi,"_"); }
 
-// ───────── Ticket ─────────
+// ───────── Orden ─────────
+let cur = null, side = "buy";
+function openOrder(k){ cur = k; $("oTitle").textContent = k + " · " + BY[k].d; setSide("buy"); $("msg").textContent = ""; $("ovOrd").classList.add("on"); refresh(); }
+$("oClose").addEventListener("click", () => $("ovOrd").classList.remove("on"));
 $("sideB").addEventListener("click", () => setSide("buy")); $("sideS").addEventListener("click", () => setSide("sell"));
-function setSide(s){ side = s; $("sideB").classList.toggle("on", s==="buy"); $("sideS").classList.toggle("on", s==="sell"); $("go").className = "btn " + s; $("go").textContent = s==="buy" ? "Abrir compra" : "Abrir venta"; }
-["amt","lev"].forEach(id => $(id).addEventListener("input", refresh));
+function setSide(s){ side = s; $("sideB").classList.toggle("on", s==="buy"); $("sideS").classList.toggle("on", s==="sell"); $("go").className = "btnP " + s; $("go").textContent = s==="buy" ? "Abrir compra" : "Abrir venta"; }
+[100,250,500,1000,2500].forEach(v => { const b = document.createElement("button"); b.textContent = v.toLocaleString("es-ES") + " €"; b.addEventListener("click", () => { $("amt").value = v; refresh(); }); $("chips").appendChild(b); });
+["amt","lev"].forEach(i => $(i).addEventListener("input", refresh));
 $("go").addEventListener("click", () => {
   const amt = +$("amt").value, lev = +$("lev").value, sl = +$("sl").value||0, tp = +$("tp").value||0, msg = $("msg");
   const used = S.pos.reduce((a,p)=>a+p.amt,0), p0 = px[cur];
   if (p0==null) return msg.textContent = "Todavía no hay precio para " + cur + ".";
   if (!(amt>=10)) return msg.textContent = "El importe mínimo es 10 €.";
-  if (amt > S.bal-used) return msg.textContent = "Saldo libre insuficiente: " + eur(S.bal-used) + ".";
+  if (amt > S.bal-used) return msg.textContent = "Disponible insuficiente: " + eur(S.bal-used) + ".";
   if (sl && sl >= amt) return msg.textContent = "El stop no puede ser mayor que el importe.";
   S.pos.push({id:S.nextId++, sym:cur, side, amt, lev, entry:p0, sl, tp, t:Date.now()});
-  msg.textContent = (side==="buy"?"Compra":"Venta") + " de " + cur + " abierta a " + fmt(cur,p0) + ".";
-  $("sl").value = ""; $("tp").value = ""; save(); refresh();
+  $("sl").value = ""; $("tp").value = ""; save(); $("ovOrd").classList.remove("on"); show("portafolio");
 });
 
-function close(id, why){
-  const i = S.pos.findIndex(p=>p.id===id); if (i<0) return;
-  const p = S.pos[i], pl = plOf(p);
-  S.bal += pl; S.pos.splice(i,1);
-  S.hist.unshift({t:Date.now(), sym:p.sym, side:p.side, amt:p.amt, lev:p.lev, entry:p.entry, exit:px[p.sym], pl, why});
-  $("msg").textContent = p.sym + " cerrada (" + why + "): " + eur(pl) + ".";
-  save();
+// ───────── Cierre ─────────
+let closing = null;
+function askClose(pid){ const p = S.pos.find(x=>x.id===pid); if (!p) return; closing = pid; const pl = plOf(p);
+  $("cInfo").innerHTML = `<div class="kv"><span>${p.sym} ${p.side==="buy"?"Compra":"Venta"} ×${p.lev}</span><b>${eur(p.amt)}</b></div><div class="kv"><span>Apertura</span><b>${fmt(p.sym,p.entry)}</b></div><div class="kv"><span>Precio actual</span><b>${fmt(p.sym,px[p.sym])}</b></div><div class="kv"><span>Resultado</span><b class="${pl>=0?"up":"down"}">${eur(pl)} (${pct(pl/p.amt*100)})</b></div>`;
+  $("ovClose").classList.add("on"); }
+$("cClose").addEventListener("click", () => $("ovClose").classList.remove("on"));
+$("cGo").addEventListener("click", () => { close(closing, "manual"); $("ovClose").classList.remove("on"); refresh(); });
+function close(pid, why){
+  const i = S.pos.findIndex(p=>p.id===pid); if (i<0) return;
+  const p = S.pos[i], pl = plOf(p); S.bal += pl; S.pos.splice(i,1);
+  S.hist.unshift({t:Date.now(), sym:p.sym, side:p.side, amt:p.amt, lev:p.lev, entry:p.entry, exit:px[p.sym], pl, why}); save();
 }
+
+// ───────── Depósito ficticio ─────────
+[$("depBtn"), $("depBtnM")].forEach(b => b.addEventListener("click", () => $("ovDep").classList.add("on")));
+$("dClose").addEventListener("click", () => $("ovDep").classList.remove("on"));
+document.querySelectorAll("#ovDep .chips button").forEach(b => b.addEventListener("click", () => $("dAmt").value = b.dataset.d));
+$("dGo").addEventListener("click", () => { const v = +$("dAmt").value; if (!(v>=100)) return; S.bal += v; S.dep = (S.dep||START) + v; save(); $("ovDep").classList.remove("on"); refresh(); });
 
 // ───────── Render ─────────
 function refresh(){
-  // lista
-  MK.forEach(m => {
-    const v = px[m.k], r = ref[m.k], c = $("c-"+cssId(m.k));
-    $("p-"+cssId(m.k)).textContent = fmt(m.k, v);
-    if (v!=null && r) { const ch = (v/r-1)*100; c.textContent = pct(ch); c.className = "c " + (ch>=0?"up":"down"); }
-  });
+  MK.forEach(m => { const v = px[m.k], r = ref[m.k], c = $("c-"+id(m.k)); $("p-"+id(m.k)).textContent = fmt(m.k,v);
+    if (v!=null && r){ const ch = (v/r-1)*100; c.textContent = pct(ch); c.className = ch>=0?"up":"down"; } });
   const nTd = MK.filter(m=>m.src==="td").length;
-  $("src").textContent = (liveOk===false ? "Binance sin conexión · " : "") + (nTd ? "Divisas y oro: Twelve Data (cada " + TD_EVERY_MIN + " min) · Petróleo: simulado" : (fxDate ? "Divisas: cierre BCE " + fxDate : "Divisas: sin conexión") + " · Petróleo y oro: simulados");
-  // cabecera gráfico
-  const m = BY[cur], v = px[cur], r = ref[cur];
-  $("hPx").textContent = fmt(cur, v);
-  if (v!=null && r){ const ch=(v/r-1)*100; $("hChg").textContent = pct(ch) + (m.src==="live"?" 24 h": m.src==="td"?" en sesión":" vs. día anterior"); $("hChg").className = "mono " + (ch>=0?"up":"down"); }
-  $("hSrc").textContent = m.src==="live" ? "Precio en tiempo real (Binance)" : m.src==="td" ? "Precio real (Twelve Data)" : m.src==="daily" ? "Precio diario del BCE" : "Precio simulado";
-  // ticket
-  const amt = +$("amt").value||0, lev = +$("lev").value||1, used = S.pos.reduce((a,p)=>a+p.amt,0);
-  $("expo").textContent = eur(amt*lev); $("tPx").textContent = fmt(cur, v); $("free").textContent = eur(S.bal-used);
-  $("go").disabled = v==null;
+  $("src").textContent = "Cripto: Binance en tiempo real · " + (nTd ? "Divisas y oro: Twelve Data (cada " + TD_EVERY_MIN + " min)" : (fxDate ? "Divisas: cierre BCE " + fxDate : "Divisas: sin conexión") + " · Oro: simulado") + " · Petróleo: simulado";
+  // orden
+  if (cur){ const v = px[cur], amt = +$("amt").value||0, lev = +$("lev").value||1, used = S.pos.reduce((a,p)=>a+p.amt,0);
+    $("oPx").textContent = fmt(cur,v); $("oSrc").textContent = srcName(BY[cur]); $("expo").textContent = eur(amt*lev); $("free").textContent = eur(S.bal-used);
+    $("units").value = v ? (amt*lev/v).toLocaleString("es-ES",{maximumFractionDigits:4}) : "—"; $("go").disabled = v==null; }
   // stops
   S.pos.slice().forEach(p => { const pl = plOf(p); if (p.sl && pl <= -p.sl) close(p.id,"stop"); else if (p.tp && pl >= p.tp) close(p.id,"objetivo"); });
-  // posiciones
-  const tb = $("pos"); tb.innerHTML = ""; let pl = 0;
-  S.pos.forEach(p => {
-    const v = plOf(p); pl += v;
+  // posiciones (tabla eToro)
+  const tb = $("pos"); tb.innerHTML = ""; let pl = 0, used = 0;
+  S.pos.forEach(p => { const v = plOf(p), cp = px[p.sym]; pl += v; used += p.amt;
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="t">${p.sym}</td><td class="t ${p.side==="buy"?"up":"down"}">${p.side==="buy"?"Compra":"Venta"}</td><td>${eur(p.amt)}</td><td>×${p.lev}</td><td>${fmt(p.sym,p.entry)}</td><td>${fmt(p.sym,px[p.sym])}</td><td>${p.sl?"-"+p.sl+" €":"—"} / ${p.tp?"+"+p.tp+" €":"—"}</td><td class="${v>=0?"up":"down"}">${eur(v)}</td><td></td>`;
-    const b = document.createElement("button"); b.className="ghost"; b.textContent="Cerrar"; b.addEventListener("click",()=>{ close(p.id,"manual"); refresh(); }); tr.lastElementChild.appendChild(b);
-    tb.appendChild(tr);
-  });
+    tr.innerHTML = `<td class="t name"><b>${p.sym}<span class="sideTag ${p.side}">${p.side==="buy"?"COMPRA":"VENTA"} ×${p.lev}</span></b><span>${new Date(p.t).toLocaleDateString("es-ES")}</span></td><td>${cp?(p.amt*p.lev/p.entry).toLocaleString("es-ES",{maximumFractionDigits:4}):"—"}</td><td>${fmt(p.sym,p.entry)}</td><td>${eur(p.amt)}</td><td class="${v>=0?"up":"down"}">${eur(v)}</td><td class="${v>=0?"up":"down"}">${pct(v/p.amt*100)}</td><td>${eur(p.amt+v)}</td><td></td>`;
+    const b = document.createElement("button"); b.className = "pxBtn"; b.textContent = fmt(p.sym,cp); b.title = "Cerrar posición"; b.addEventListener("click", () => askClose(p.id)); tr.lastElementChild.appendChild(b);
+    tb.appendChild(tr); });
   $("posEmpty").hidden = S.pos.length>0; $("posN").textContent = S.pos.length ? S.pos.length + " abiertas" : "";
-  if (S.pos.length && S.bal+pl < used*0.5){ S.pos.slice().forEach(p=>close(p.id,"margen")); $("msg").textContent = "Margen agotado: posiciones cerradas automáticamente."; return refresh(); }
-  // cuenta
-  const eq = S.bal+pl;
-  $("bal").textContent = eur(S.bal); $("eq").textContent = eur(eq); $("pl").textContent = eur(pl); $("pl").className = "mono " + (pl>=0?"up":"down");
-  $("cEq").textContent = eur(eq); $("cBar").style.width = Math.max(2,Math.min(100, eq/20000*100)) + "%";
-  const ret = (eq/10000-1)*100; $("cRet").textContent = pct(ret); $("cRet").className = ret>=0?"up":"down";
+  if (S.pos.length && S.bal+pl < used*0.5){ S.pos.slice().forEach(p=>close(p.id,"margen")); return refresh(); }
+  // barra de resumen
+  const avail = S.bal-used, tot = S.bal+pl;
+  $("sAvail").textContent = eur(avail); $("sInv").textContent = eur(used); $("sPl").textContent = eur(pl); $("sPl").className = "mono " + (pl>=0?"up":"down"); $("sTot").textContent = eur(tot);
+  const dep = S.dep||START, ret = (tot/dep-1)*100; $("cRet").textContent = pct(ret); $("cRet").className = ret>=0?"up":"down"; $("cDep").textContent = eur(dep);
   renderHist();
 }
 function renderHist(){
   const tb = $("hist"); tb.innerHTML = "";
-  S.hist.forEach(h => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="t">${new Date(h.t).toLocaleString("es-ES",{dateStyle:"short",timeStyle:"short"})}</td><td class="t">${h.sym}</td><td class="t ${h.side==="buy"?"up":"down"}">${h.side==="buy"?"Compra":"Venta"}</td><td>${eur(h.amt)}</td><td>×${h.lev}</td><td>${fmt(h.sym,h.entry)}</td><td>${fmt(h.sym,h.exit)}</td><td class="t">${h.why}</td><td class="${h.pl>=0?"up":"down"}">${eur(h.pl)}</td>`;
-    tb.appendChild(tr);
-  });
+  S.hist.forEach(h => { const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="t">${new Date(h.t).toLocaleString("es-ES",{dateStyle:"short",timeStyle:"short"})}</td><td class="t">${h.sym} <span class="sideTag ${h.side}">${h.side==="buy"?"COMPRA":"VENTA"} ×${h.lev}</span></td><td>${eur(h.amt)}</td><td>${fmt(h.sym,h.entry)}</td><td>${fmt(h.sym,h.exit)}</td><td class="t">${h.why}</td><td class="${h.pl>=0?"up":"down"}">${eur(h.pl)}</td>`; tb.appendChild(tr); });
   $("histEmpty").hidden = S.hist.length>0;
   const n = S.hist.length, w = S.hist.filter(h=>h.pl>0).length;
   $("nOps").textContent = n; $("winr").textContent = n ? Math.round(100*w/n)+" %" : "—";
-  $("bw").textContent = n ? eur(Math.max(...S.hist.map(h=>h.pl))) + " / " + eur(Math.min(...S.hist.map(h=>h.pl))) : "—";
 }
-$("reset").addEventListener("click", () => {
-  const b = $("reset");
-  if (b.dataset.c){ S = {bal:10000,pos:[],hist:[],reps:S.reps,nextId:1}; save(); delete b.dataset.c; b.textContent="Reiniciar cuenta"; refresh(); }
-  else { b.dataset.c="1"; b.textContent="Confirmar reinicio"; setTimeout(()=>{ delete b.dataset.c; b.textContent="Reiniciar cuenta"; },4000); }
-});
+
+// ───────── Ajustes ─────────
+$("tdKey").value = TD_KEY;
+$("tdSave").addEventListener("click", () => { TD_KEY = $("tdKey").value.trim(); try { localStorage.setItem("soralab-tdkey", TD_KEY); } catch(e){} if (!TD_KEY) MK.forEach(m => { if (m.src==="td") m.src = m.fx ? "daily" : "sim"; }); pollTD(); });
+$("reset").addEventListener("click", () => { const b = $("reset");
+  if (b.dataset.c){ S = {bal:START,dep:START,pos:[],hist:[],reps:S.reps,nextId:1}; save(); delete b.dataset.c; b.textContent = "Reiniciar cuenta"; refresh(); }
+  else { b.dataset.c = "1"; b.textContent = "Confirmar reinicio"; setTimeout(()=>{ delete b.dataset.c; b.textContent = "Reiniciar cuenta"; },4000); } });
 
 // ───────── Informes ─────────
 const EXAMPLES = [
@@ -398,36 +436,26 @@ const EXAMPLES = [
 ];
 function renderReps(){
   const items = S.reps || EXAMPLES, box = $("reps"); box.innerHTML = "";
-  items.forEach(r => {
-    const d = document.createElement("article"); d.className = "rep";
+  items.forEach(r => { const d = document.createElement("article"); d.className = "rep";
     const tag = r.res==="ok" ? '<span class="tag ok">ACERTADO</span>' : r.res==="ko" ? '<span class="tag ko">INVALIDADO</span>' : '<span class="tag open">EN CURSO</span>';
     d.innerHTML = `<div class="meta"><span>${r.date}</span><span>${esc(r.sym)}</span><span>${esc(r.pil)}</span>${tag}${r.ex?'<span class="tag ex">EJEMPLO</span>':""}</div><h3>${esc(r.title)}</h3><p>${esc(r.body)}</p>` + (r.note?`<p class="mono" style="font-size:12px;color:var(--mute)">Resultado: ${esc(r.note)}</p>`:"");
-    if (!r.ex && r.res==="open"){
-      const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:6px";
-      [["ok","Marcar acertado"],["ko","Marcar invalidado"]].forEach(([k,t]) => { const b = document.createElement("button"); b.className="ghost"; b.textContent=t; b.addEventListener("click",()=>{ r.res=k; r.note="Cerrado el "+new Date().toLocaleDateString("es-ES"); save(); renderReps(); }); row.appendChild(b); });
-      d.appendChild(row);
-    }
-    box.appendChild(d);
-  });
+    if (!r.ex && r.res==="open"){ const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:6px";
+      [["ok","Marcar acertado"],["ko","Marcar invalidado"]].forEach(([k,t]) => { const b = document.createElement("button"); b.className = "ghost"; b.textContent = t; b.addEventListener("click",()=>{ r.res = k; r.note = "Cerrado el " + new Date().toLocaleDateString("es-ES"); save(); renderReps(); }); row.appendChild(b); }); d.appendChild(row); }
+    box.appendChild(d); });
 }
 $("rDate").value = new Date().toISOString().slice(0,10);
-$("repForm").addEventListener("submit", e => {
-  e.preventDefault(); if (!S.reps) S.reps = [];
+$("repForm").addEventListener("submit", e => { e.preventDefault(); if (!S.reps) S.reps = [];
   S.reps.unshift({date:$("rDate").value, sym:$("rSym").value.trim(), pil:$("rPil").value, title:$("rTitle").value.trim(), body:$("rBody").value.trim(), res:"open", note:""});
-  save(); e.target.reset(); $("rDate").value = new Date().toISOString().slice(0,10); renderReps();
-});
+  save(); e.target.reset(); $("rDate").value = new Date().toISOString().slice(0,10); renderReps(); });
 
 // ───────── Vistas ─────────
 const links = document.querySelectorAll("nav a");
-function show(v){
-  if (!["simulador","cartera","informes"].includes(v)) v = "simulador";
-  document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id===v));
-  links.forEach(a => a.classList.toggle("on", a.dataset.v===v));
-  if (v==="informes") renderReps();
-}
-links.forEach(a => a.addEventListener("click", e => { e.preventDefault(); history.replaceState(null,"","#"+a.dataset.v); show(a.dataset.v); }));
-show((location.hash||"").replace("#",""));
-select(cur); setSide("buy"); refresh();
+function show(v){ if (!["mercados","portafolio","informes","ajustes"].includes(v)) v = "mercados";
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id===v)); links.forEach(a => a.classList.toggle("on", a.dataset.v===v));
+  $("sum").hidden = v!=="portafolio"; if (v==="informes") renderReps(); history.replaceState(null,"","#"+v); window.scrollTo(0,0); }
+links.forEach(a => a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.v); }));
+document.querySelectorAll(".ov").forEach(o => o.addEventListener("click", e => { if (e.target===o) o.classList.remove("on"); }));
+show((location.hash||"").replace("#","")); refresh();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
